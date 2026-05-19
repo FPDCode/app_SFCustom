@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Generator: CustomSymbols by @serious_bret-->
+<!DOCTYPE svg
+        PUBLIC "-//W3C//DTD SVG 1.1//EN"
+        "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2900" height="1500">
+    <g transform="translate(-200 -200)">
+    <!--template writer version: "8"-->
+    <g id="Notes">
+        <rect height="2200" id="artboard" style="fill:white;opacity:1" width="3300" x="0" y="0"/>
+        <line id="" style="fill:none;stroke:black;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="292" y2="292"/>
+        <text id="reftext1" style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;font-weight:bold;" transform="matrix(1 0 0 1 263 322)">Weight/Scale Variations</text>
+        <text id="reftext2" style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 559.711 322)">Ultralight</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 856.422 322)">Thin</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 1153.13 322)">Light</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 1449.84 322)">Regular</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 1746.56 322)">Medium</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 2043.27 322)">Semibold</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 2339.98 322)">Bold</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 2636.69 322)">Heavy</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;text-anchor:middle;" transform="matrix(1 0 0 1 2933.4 322)">Black</text>
+
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;" transform="matrix(1 0 0 1 263 726)">Small</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;" transform="matrix(1 0 0 1 263 1156)">Medium</text>
+        <text style="stroke:none;fill:black;font-family:-apple-system,&quot;SF Pro Display&quot;,&quot;SF Pro Text&quot;,Helvetica,sans-serif;" transform="matrix(1 0 0 1 263 1586)">Large</text>
+    </g>
+    <g id="Guides">
+        <g id="H-reference" style="fill:#27AAE1;stroke:none;" transform="matrix(1 0 0 1 339 696)">
+            <path d="M0.976562 0L3.66211 0L12.9883-24.4629L45.752-24.4629L55.127 0L57.7637 0L30.6152-70.459L28.125-70.459ZM29.3457-67.1387L29.4434-67.1387L44.873-26.709L13.8672-26.709Z"/>
+        </g>
+        <line id="Baseline-S" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="696" y2="696"/>
+        <line id="Capline-S" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="625.541" y2="625.541"/>
+        <g id="H-reference" style="fill:#27AAE1;stroke:none;" transform="matrix(1 0 0 1 339 1126)">
+            <path d="M0.976562 0L3.66211 0L12.9883-24.4629L45.752-24.4629L55.127 0L57.7637 0L30.6152-70.459L28.125-70.459ZM29.3457-67.1387L29.4434-67.1387L44.873-26.709L13.8672-26.709Z"/>
+        </g>
+        <line id="Baseline-M" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1126" y2="1126"/>
+        <line id="Capline-M" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1055.54" y2="1055.54"/>
+        <g id="H-reference" style="fill:#27AAE1;stroke:none;" transform="matrix(1 0 0 1 339 1556)">
+            <path d="M0.976562 0L3.66211 0L12.9883-24.4629L45.752-24.4629L55.127 0L57.7637 0L30.6152-70.459L28.125-70.459ZM29.3457-67.1387L29.4434-67.1387L44.873-26.709L13.8672-26.709Z"/>
+        </g>
+        <line id="Baseline-L" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1556" y2="1556"/>
+        <line id="Capline-L" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1485.54" y2="1485.54"/>
+        <line id="left-margin" x1="" x2="" y1="1030.79" y2="1150.12" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;"/>
+        <line id="right-margin" x1="" x2="" y1="1030.79" y2="1150.12" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;"/>
+    </g>
+    <g id="Symbols">
+        <g id="Black-L"></g>
+        <g id="Heavy-L"></g>
+        <g id="Bold-L"></g>
+        <g id="Semibold-L"></g>
+        <g id="Medium-L"></g>
+        <g id="Regular-L"></g>
+        <g id="Light-L"></g>
+        <g id="Thin-L"></g>
+        <g id="Ultralight-L"></g>
+        <g id="Black-M"></g>
+        <g id="Heavy-M"></g>
+        <g id="Bold-M"></g>
+        <g id="Semibold-M"></g>
+        <g id="Medium-M"></g>
+        <g id="Regular-M"></g>
+        <g id="Light-M"></g>
+        <g id="Thin-M"></g>
+        <g id="Ultralight-M"></g>
+        <g id="Black-S"></g>
+        <g id="Heavy-S"></g>
+        <g id="Bold-S"></g>
+        <g id="Semibold-S"></g>
+        <g id="Medium-S"></g>
+        <g id="Regular-S"></g>
+        <g id="Light-S"></g>
+        <g id="Thin-S"></g>
+        <g id="Ultralight-S"></g>
+    </g>
+    </g>
+</svg>

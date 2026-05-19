@@ -30,7 +30,14 @@
       "WebFetch(domain:forum.figma.com)",
       "WebFetch(domain:github.com)",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(/usr/bin/python3 --version)",
+      "Bash(/usr/bin/python3 -c \"import fontTools; print\\('fontTools version:', fontTools.__version__\\)\")",
+      "Bash(/opt/homebrew/bin/python3 --version)",
+      "Bash(/opt/homebrew/bin/python3 -c \"import fontTools; print\\('fontTools version:', fontTools.__version__\\)\")",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "ES2020",
+    "moduleResolution": "node",
     "strict": true,
+    "noImplicitAny": true,
     "esModuleInterop": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "typeRoots": ["node_modules/@figma"]
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "typeRoots": ["./node_modules/@figma", "./node_modules/@types"]
   },
   "include": ["src/**/*.ts"]
 }

@@ -1,13 +1,12 @@
 {
   "name": "SF Custom",
-  "id": "sf-custom-icon-bridge",
+  "id": "sf-custom-bridge",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
-  "editorType": ["figma"],
+  "editorType": ["figma", "figjam"],
   "networkAccess": {
-    "allowedDomains": ["http://localhost:8787"],
-    "reasoning": "Communicates with the SF Custom macOS app via localhost HTTP to send icon vector data for template generation and font compilation."
-  },
-  "permissions": ["currentuser"]
+    "allowedDomains": ["http://localhost:8787", "http://127.0.0.1:8787"],
+    "reasoning": "Sends selected icons to the SF Custom companion macOS app running locally."
+  }
 }
