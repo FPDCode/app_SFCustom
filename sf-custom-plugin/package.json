@@ -1,0 +1,14 @@
+{
+  "name": "sf-custom-plugin",
+  "version": "1.0.0",
+  "description": "Figma plugin for SF Custom — captures icon vectors and sends them to the macOS app",
+  "scripts": {
+    "build": "esbuild src/code.ts --bundle --outfile=dist/code.js --platform=neutral --target=es2017 && cp src/ui/ui.html dist/ui.html",
+    "watch": "esbuild src/code.ts --bundle --outfile=dist/code.js --platform=neutral --target=es2017 --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.92.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

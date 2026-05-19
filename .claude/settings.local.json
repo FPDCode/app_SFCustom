@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(swift build *)",
+      "Bash(codesign --force --deep --sign - \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SFCustomApp.app\")",
+      "Bash(curl -sS -m 3 http://localhost:8787/api/status)",
+      "Bash(echo \"---exit:$?\")",
+      "Bash(lsof -nP -iTCP:8787 -sTCP:LISTEN)",
+      "Bash(codesign --force --deep --sign - build/SFCustomApp.app)",
+      "Bash(ls -la /tmp 2>/dev/null > /dev/null; pgrep -lf SFCustomApp; stat -f \"%Sm  %N\" \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SFCustomApp.app/Contents/MacOS/SFCustomApp\")",
+      "Bash(pkill -f SFCustomApp)",
+      "Bash(open \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SFCustomApp.app\")",
+      "WebFetch(domain:freedium.cfd)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:webcache.googleusercontent.com)",
+      "WebFetch(domain:web.archive.org)",
+      "Bash(curl -sL -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://freedium.cfd/https://medium.com/@davidkatsman/how-to-create-custom-sf-symbols-d0e0abdb4972\" -o /tmp/article.html -w \"HTTP_CODE:%{http_code}\\\\nSIZE:%{size_download}\\\\n\" --max-time 30)",
+      "Bash(curl -sL -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://medium.com/@davidkatsman/how-to-create-custom-sf-symbols-d0e0abdb4972\" -o /tmp/article.html -w \"HTTP_CODE:%{http_code}\\\\nSIZE:%{size_download}\\\\n\" --max-time 30)",
+      "Bash(curl -sL -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://scribe.rip/@davidkatsman/how-to-create-custom-sf-symbols-d0e0abdb4972\" -o /tmp/article2.html -w \"HTTP_CODE:%{http_code}\\\\nSIZE:%{size_download}\\\\n\" --max-time 30)",
+      "Bash(curl -sL \"https://api.github.com/repos/swhitty/SwiftDraw/releases/latest\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Latest:', d.get\\('tag_name','?'\\), '-', d.get\\('name','?'\\)\\); print\\('Published:', d.get\\('published_at','?'\\)\\)\")",
+      "Bash(swift package *)",
+      "Bash(pip3 install *)",
+      "Bash(python3 -c \"from fontTools.fontBuilder import FontBuilder; from fontTools.svgLib.path import SVGPath; print\\('fontTools OK'\\)\")",
+      "WebFetch(domain:www.figma.com)",
+      "WebSearch",
+      "WebFetch(domain:developers.figma.com)",
+      "WebFetch(domain:forum.figma.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
