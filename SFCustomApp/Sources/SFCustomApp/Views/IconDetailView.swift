@@ -14,9 +14,12 @@ struct IconDetailView: View {
 
     private let snooper = StrokeSnooper()
 
+    @State private var copiedHint: String?
+
     var body: some View {
         VStack(spacing: 0) {
             header
+            FigmaUsageStrip(icon: icon, copiedHint: $copiedHint)
             Divider()
             grid
             Divider()
@@ -38,7 +41,7 @@ struct IconDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(icon.name).font(.title2.weight(.semibold))
                 HStack(spacing: 12) {
-                    Label(String(format: "U+%04X", icon.codepoint), systemImage: "number")
+                    Label(icon.codepointString, systemImage: "number")
                     Label("9 weights × 3 scales", systemImage: "rectangle.3.group")
                 }
                 .font(.caption)

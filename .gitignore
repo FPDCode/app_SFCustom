@@ -16,3 +16,7 @@ dist/
 # Editor / IDE
 .vscode/
 .idea/
+
+# User-facing exports + compiled app bundle (build outputs)
+SFCustomExports/
+SFCustomApp/build/

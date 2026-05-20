@@ -100,6 +100,41 @@
     font-size: 11px;
   }
 
+  .sync {
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .sync:not(:empty) { display: flex; }
+  .sync .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .sync.linked {
+    background: rgba(52, 199, 89, 0.12);
+    color: var(--success);
+    border: 1px solid rgba(52, 199, 89, 0.3);
+  }
+  .sync.linked .dot { background: var(--success); }
+  .sync.warning {
+    background: rgba(255, 159, 10, 0.12);
+    color: #ff9f0a;
+    border: 1px solid rgba(255, 159, 10, 0.3);
+  }
+  .sync.warning .dot { background: #ff9f0a; }
+
+  select {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font: inherit;
+    background: var(--bg);
+    color: var(--fg);
+    width: 100%;
+  }
+
   footer {
     border-top: 1px solid var(--border);
     padding: 10px 14px;
@@ -145,11 +180,18 @@
   </header>
   <main>
     <div id="preview" class="preview"><div class="empty">Select an icon in Figma to preview it.</div></div>
+    <div id="sync-state" class="sync"></div>
     <div class="form-row">
       <label for="icon-name">Icon name</label>
       <input id="icon-name" placeholder="e.g. radar" autocomplete="off" />
     </div>
-    <p class="help">Strokes get outlined automatically so they survive font compilation. The app generates 9 weight variants from this single SVG.</p>
+    <div id="replace-row" class="form-row" style="display:none">
+      <label for="replace-target">Replace existing icon</label>
+      <select id="replace-target">
+        <option value="">Choose icon to replace…</option>
+      </select>
+    </div>
+    <p class="help">Strokes get outlined automatically so they survive font compilation. Re-sending the same Figma layer updates the linked icon — no duplicates.</p>
     <div id="error" class="error" style="display:none"></div>
   </main>
   <footer>

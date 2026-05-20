@@ -10,9 +10,17 @@ struct IconRow: View {
                 .background(Color(nsColor: .controlBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
-                Text(icon.name)
-                    .font(.callout)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(icon.name)
+                        .font(.callout)
+                        .lineLimit(1)
+                    if icon.figmaNodeID != nil {
+                        Image(systemName: "link")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.green)
+                            .help("Linked to a Figma node — re-sending updates this icon")
+                    }
+                }
                 Text(String(format: "U+%04X", icon.codepoint))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)

@@ -33,6 +33,7 @@ try:
     from fontTools.fontBuilder import FontBuilder
     from fontTools.pens.t2CharStringPen import T2CharStringPen
     from fontTools.pens.transformPen import TransformPen
+    from fontTools.pens.boundsPen import BoundsPen
     from fontTools.svgLib.path import parse_path
 except ImportError as exc:
     sys.stderr.write(
@@ -46,35 +47,82 @@ UPEM = 1000
 ASCENT = 800
 DESCENT = -200
 
+# Target visual size of the icon as a fraction of the em box.
+# Sized to sit alongside native SF Pro symbols at the same point size.
+ICON_TARGET_FRACTION = 1.45
+
+# Vertical center of the icon, in UPEM units. (ascent + descent) / 2 =
+# (800 + (-200)) / 2 = 300 — the visual center of a line of text. The
+# icon overshoots cap-line and baseline symmetrically, matching how
+# SF Pro symbols extend slightly past those lines.
+ICON_CENTER_Y = 300
+
+# Horizontal padding around the icon's content, in UPEM units. Adds
+# breathing room before the next glyph so icons can be set next to text
+# without colliding. (Roughly the same as SF Pro symbol sidebearings.)
+ICON_SIDE_PADDING = 100
+
 
 def build_glyph(paths, viewbox):
-    """Convert a list of SVG path 'd' strings into a CFF (Type 2) glyph."""
-    vb_x, vb_y, vb_w, vb_h = viewbox
-    if vb_w <= 0 or vb_h <= 0:
-        vb_w = vb_h = 1.0
+    """Convert a list of SVG path 'd' strings into a CFF (Type 2) glyph.
 
-    # Fit the icon into a 1em square (UPEM tall), preserve aspect ratio,
-    # flip Y because SVG is y-down and fonts are y-up, and shift onto the
-    # baseline (descender = 0, ascender = UPEM).
-    scale = UPEM / max(vb_w, vb_h)
-    rendered_w = vb_w * scale
-    rendered_h = vb_h * scale
-    # Center horizontally; sit on the baseline with cap height ~= rendered_h.
-    tx = (UPEM - rendered_w) / 2.0 - vb_x * scale
-    ty = ASCENT - vb_y * (-scale)  # see transform below
+    Sizing is based on the *tight content bounding box* of the paths
+    (not the SVG viewBox), so empty padding in the source SVG doesn't
+    shrink the rendered glyph.
+    """
+    # Pass 1: measure the tight bounds of the actual path content.
+    bounds_pen = BoundsPen(None)
+    for d in paths:
+        if not d or not d.strip():
+            continue
+        try:
+            parse_path(d, bounds_pen)
+        except Exception:
+            continue
+
+    if bounds_pen.bounds is None:
+        # No drawable content — return an empty glyph.
+        return T2CharStringPen(UPEM, None).getCharString(), UPEM
+
+    xmin, ymin, xmax, ymax = bounds_pen.bounds
+    content_w = max(xmax - xmin, 1e-6)
+    content_h = max(ymax - ymin, 1e-6)
+
+    target_size = UPEM * ICON_TARGET_FRACTION
+    scale = target_size / max(content_w, content_h)
+
+    rendered_w = content_w * scale
+    rendered_h = content_h * scale
+
+    # Advance width hugs the icon's width plus side padding on each side
+    # — so the glyph's selection box wraps the icon tightly while
+    # leaving breathing room before the next character.
+    advance = int(round(rendered_w + 2 * ICON_SIDE_PADDING))
+
+    # Horizontally centre the icon inside its advance box. SVG y-down →
+    # font y-up flip handled by the negative y scale. Vertically centre
+    # the content's bounding box on ICON_CENTER_Y so icons of different
+    # aspect ratios still align consistently with SF Pro symbols.
+    tx = (advance - rendered_w) / 2.0 - scale * xmin
+    target_top = ICON_CENTER_Y + rendered_h / 2.0
+    # In font space: y' = -scale*y + ty. We want SVG-ymin → font-target_top.
+    # → target_top = -scale*ymin + ty  ⇒  ty = target_top + scale*ymin
+    ty = target_top + scale * ymin
 
     pen = T2CharStringPen(UPEM, None)
-    # Affine: x' = scale * x + tx ; y' = -scale * y + ty
-    # Built as a 2x3 matrix in TransformPen-style: (xx, xy, yx, yy, dx, dy)
-    transform = (scale, 0, 0, -scale, -vb_x * scale + (UPEM - rendered_w) / 2.0, ASCENT + vb_y * scale)
+    transform = (scale, 0, 0, -scale, tx, ty)
     tpen = TransformPen(pen, transform)
 
     for d in paths:
         if not d or not d.strip():
             continue
-        parse_path(d, tpen)
+        try:
+            parse_path(d, tpen)
+        except Exception as exc:
+            sys.stderr.write(f"PATH_FAILED:{exc}\n")
+            continue
 
-    return pen.getCharString(), rendered_w
+    return pen.getCharString(), advance
 
 
 def build_font(spec):
@@ -118,7 +166,15 @@ def build_font(spec):
     metrics = {name: (advances[name], 0) for name in glyph_order}
     fb.setupHorizontalMetrics(metrics)
     fb.setupHorizontalHeader(ascent=ASCENT, descent=DESCENT)
-    fb.setupOS2(sTypoAscender=ASCENT, sTypoDescender=DESCENT, usWinAscent=ASCENT, usWinDescent=abs(DESCENT))
+    # Expand winAscent/winDescent so the larger-than-em icons don't get
+    # clipped by Windows-style renderers (Figma respects these on macOS too).
+    half_icon = UPEM * ICON_TARGET_FRACTION / 2.0
+    fb.setupOS2(
+        sTypoAscender=ASCENT,
+        sTypoDescender=DESCENT,
+        usWinAscent=int(ICON_CENTER_Y + half_icon) + 50,
+        usWinDescent=int(half_icon - ICON_CENTER_Y) + 50,
+    )
     fb.setupNameTable({
         "familyName":   family,
         "styleName":    style,

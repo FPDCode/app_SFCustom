@@ -17,11 +17,17 @@ struct Icon: Identifiable, Codable, Hashable {
     /// Private Use Area starting at U+E000 and is assigned by the library.
     var codepoint: UInt32
 
+    /// Identity of the source Figma node, if this icon was sent from the
+    /// plugin. Used to auto-update the icon when the same node is
+    /// re-sent — no duplicates, no manual "replace" step.
+    var figmaNodeID: String?
+
     init(
         id: UUID = UUID(),
         name: String,
         sourceSVG: String,
         codepoint: UInt32,
+        figmaNodeID: String? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -29,6 +35,7 @@ struct Icon: Identifiable, Codable, Hashable {
         self.name = name
         self.sourceSVG = sourceSVG
         self.codepoint = codepoint
+        self.figmaNodeID = figmaNodeID
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

@@ -39,6 +39,18 @@ final class StrokeSnooper: NSObject {
         var svgXML: String
         /// The stroke scale used to generate it.
         var strokeScale: Double
+        /// Tight bounding box of the rendered content (after stroke
+        /// scaling) — i.e. what the browser would `getBBox()` on the
+        /// root SVG element. Used by TemplateGenerator to size the icon
+        /// at cap-height regardless of viewBox padding.
+        var contentBBox: BBox
+    }
+
+    struct BBox: Hashable {
+        var x: Double
+        var y: Double
+        var width: Double
+        var height: Double
     }
 
     private var webView: WKWebView?
@@ -123,7 +135,14 @@ final class StrokeSnooper: NSObject {
         else {
             throw SnoopError.unexpectedResult
         }
-        return VariantResult(sourceWidth: w, sourceHeight: h, svgXML: xml, strokeScale: scale)
+        let bb = dict["bbox"] as? [String: Any]
+        let bbox = BBox(
+            x:      (bb?["x"]      as? NSNumber)?.doubleValue ?? 0,
+            y:      (bb?["y"]      as? NSNumber)?.doubleValue ?? 0,
+            width:  (bb?["width"]  as? NSNumber)?.doubleValue ?? w,
+            height: (bb?["height"] as? NSNumber)?.doubleValue ?? h
+        )
+        return VariantResult(sourceWidth: w, sourceHeight: h, svgXML: xml, strokeScale: scale, contentBBox: bbox)
     }
 
     // MARK: - The JavaScript
@@ -219,8 +238,27 @@ final class StrokeSnooper: NSObject {
                 clone.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
             }
 
+            // To get a tight bbox AFTER stroke scaling we have to mount
+            // the modified clone into the live DOM (getBBox only works on
+            // rendered elements). Off-screen, measure, then remove.
+            var bbox = { x: 0, y: 0, width: width, height: height };
+            try {
+                var host = document.createElement('div');
+                host.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:' + width + 'px;height:' + height + 'px;';
+                document.body.appendChild(host);
+                host.appendChild(clone);
+                var liveBBox = clone.getBBox();
+                bbox = {
+                    x: liveBBox.x, y: liveBBox.y,
+                    width: liveBBox.width, height: liveBBox.height
+                };
+                document.body.removeChild(host);
+            } catch (e) {
+                // Some SVGs (no rendered children) throw — fall back.
+            }
+
             var xml = new XMLSerializer().serializeToString(clone);
-            return { xml: xml, width: width, height: height };
+            return { xml: xml, width: width, height: height, bbox: bbox };
         })();
         """
     }

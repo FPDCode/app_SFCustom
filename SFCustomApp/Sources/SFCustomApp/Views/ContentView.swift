@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var isImporterPresented = false
     @State private var importError: String?
+    @State private var isCompareOpen = false
 
     var body: some View {
         NavigationSplitView {
@@ -35,6 +36,11 @@ struct ContentView: View {
         .alert("Import failed", isPresented: .constant(importError != nil), actions: {
             Button("OK") { importError = nil }
         }, message: { Text(importError ?? "") })
+        .sheet(isPresented: $isCompareOpen) {
+            CompareView(initialIcon: selectedIcon)
+                .environmentObject(library)
+                .environmentObject(settings)
+        }
         .onDrop(of: [.svg, .fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers)
             return true
@@ -64,12 +70,7 @@ struct ContentView: View {
                     ForEach(filteredIcons) { icon in
                         IconRow(icon: icon)
                             .tag(icon.id as Icon.ID?)
-                            .contextMenu {
-                                Button("Rename…", action: { renameIcon(icon) })
-                                Button("Duplicate", action: { duplicate(icon) })
-                                Divider()
-                                Button("Delete", role: .destructive) { library.delete(icon) }
-                            }
+                            .contextMenu { iconContextMenu(for: icon) }
                     }
                 }
             }
@@ -139,6 +140,15 @@ struct ContentView: View {
             }
         }
         ToolbarItem(placement: .primaryAction) {
+            Button {
+                isCompareOpen = true
+            } label: {
+                Label("Compare", systemImage: "rectangle.split.2x1")
+            }
+            .disabled(library.icons.isEmpty)
+            .help("Test your icons side-by-side with SF Pro symbols")
+        }
+        ToolbarItem(placement: .primaryAction) {
             CompileFontButton()
         }
     }
@@ -202,6 +212,30 @@ struct ContentView: View {
     private func duplicate(_ icon: Icon) {
         let dup = library.add(name: icon.name, sourceSVG: icon.sourceSVG)
         selection = dup.id
+    }
+
+    @ViewBuilder
+    private func iconContextMenu(for icon: Icon) -> some View {
+        Button { CopyAction.symbol(icon) } label: {
+            Label("Copy Symbol", systemImage: "doc.on.doc")
+        }
+        Button { CopyAction.name(icon) } label: {
+            Label("Copy Name", systemImage: "textformat")
+        }
+        Button { CopyAction.codepoint(icon) } label: {
+            Label("Copy Codepoint  (\(icon.codepointString))", systemImage: "number")
+        }
+        Button { CopyAction.svg(icon) } label: {
+            Label("Copy SVG", systemImage: "curlybraces")
+        }
+        Divider()
+        Button("Rename…", action: { renameIcon(icon) })
+        Button("Duplicate", action: { duplicate(icon) })
+        if icon.figmaNodeID != nil {
+            Button("Unlink from Figma") { library.unlinkFromFigma(icon) }
+        }
+        Divider()
+        Button("Delete", role: .destructive) { library.delete(icon) }
     }
 }
 

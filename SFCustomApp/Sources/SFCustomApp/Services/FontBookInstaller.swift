@@ -21,10 +21,17 @@ struct FontBookInstaller {
     }
 
     /// Registers the font for the current user (no admin password required).
+    /// If the font was already registered (e.g. previous compile), we
+    /// unregister first so the new file replaces the cached one.
     func install(fontAt url: URL) throws {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw InstallError.fontFileMissing
         }
+        // Best-effort uninstall first — ignore errors, the font may not exist yet.
+        var uninstallError: Unmanaged<CFError>?
+        _ = CTFontManagerUnregisterFontsForURL(url as CFURL, .user, &uninstallError)
+        uninstallError?.release()
+
         var errorRef: Unmanaged<CFError>?
         let ok = CTFontManagerRegisterFontsForURL(url as CFURL, .user, &errorRef)
         if !ok, let err = errorRef?.takeRetainedValue() {

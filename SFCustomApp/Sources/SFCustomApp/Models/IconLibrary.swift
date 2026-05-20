@@ -20,9 +20,14 @@ final class IconLibrary: ObservableObject {
         load()
     }
 
-    func add(name: String, sourceSVG: String) -> Icon {
+    func add(name: String, sourceSVG: String, figmaNodeID: String? = nil) -> Icon {
         let next = nextCodepoint()
-        let icon = Icon(name: uniqueName(from: name), sourceSVG: sourceSVG, codepoint: next)
+        let icon = Icon(
+            name: uniqueName(from: name),
+            sourceSVG: sourceSVG,
+            codepoint: next,
+            figmaNodeID: figmaNodeID
+        )
         icons.append(icon)
         save()
         return icon
@@ -36,6 +41,29 @@ final class IconLibrary: ObservableObject {
         save()
     }
 
+    /// Replace an existing icon's source SVG (and optionally its name).
+    /// Keeps the same id, codepoint, and Figma link — so users keep their
+    /// Unicode character stable across updates.
+    @discardableResult
+    func replace(
+        _ icon: Icon,
+        with newSVG: String,
+        renamingTo newName: String? = nil,
+        figmaNodeID: String? = nil
+    ) -> Icon {
+        guard let idx = icons.firstIndex(where: { $0.id == icon.id }) else { return icon }
+        icons[idx].sourceSVG = newSVG
+        if let newName, !newName.isEmpty {
+            icons[idx].name = uniqueName(from: newName, excluding: icon.id)
+        }
+        if let figmaNodeID {
+            icons[idx].figmaNodeID = figmaNodeID
+        }
+        icons[idx].updatedAt = .now
+        save()
+        return icons[idx]
+    }
+
     func delete(_ icon: Icon) {
         icons.removeAll { $0.id == icon.id }
         save()
@@ -46,6 +74,29 @@ final class IconLibrary: ObservableObject {
         icons[idx].name = uniqueName(from: newName, excluding: icon.id)
         icons[idx].updatedAt = .now
         save()
+    }
+
+    /// Break the link between a library icon and its source Figma node,
+    /// so the next send creates a fresh icon instead of overwriting this one.
+    func unlinkFromFigma(_ icon: Icon) {
+        guard let idx = icons.firstIndex(where: { $0.id == icon.id }) else { return }
+        icons[idx].figmaNodeID = nil
+        icons[idx].updatedAt = .now
+        save()
+    }
+
+    // MARK: - Lookup
+
+    func find(byFigmaNodeID nodeID: String) -> Icon? {
+        icons.first { $0.figmaNodeID == nodeID }
+    }
+
+    func find(byID id: UUID) -> Icon? {
+        icons.first { $0.id == id }
+    }
+
+    func find(byName name: String) -> Icon? {
+        icons.first { $0.name == name }
     }
 
     // MARK: - Persistence

@@ -107,6 +107,18 @@ final class LocalServer: ObservableObject {
             let count = library?.icons.count ?? 0
             respond(.json(["ok": true, "iconCount": count, "port": Int(port)]), on: connection)
 
+        case ("GET", "/api/icons"):
+            let list = (library?.icons ?? []).map { icon -> [String: Any] in
+                var item: [String: Any] = [
+                    "id": icon.id.uuidString,
+                    "name": icon.name,
+                    "codepoint": Int(icon.codepoint),
+                ]
+                if let nodeID = icon.figmaNodeID { item["figmaNodeId"] = nodeID }
+                return item
+            }
+            respond(.json(["ok": true, "icons": list]), on: connection)
+
         case ("POST", "/api/icons"):
             handleIngest(request, on: connection)
 
@@ -115,6 +127,11 @@ final class LocalServer: ObservableObject {
         }
     }
 
+    /// Ingest an icon from the plugin. Behavior is controlled by `mode`:
+    ///   - "auto"   (default): update if `figmaNodeId` matches an existing
+    ///                         icon, otherwise create new.
+    ///   - "create": always create a new icon (rename if name clashes).
+    ///   - "update": replace the icon at `targetIconId` in place.
     private func handleIngest(_ request: HTTPRequest, on connection: NWConnection) {
         guard let library else {
             respond(.json(["ok": false, "error": "library_unavailable"]), on: connection)
@@ -128,13 +145,58 @@ final class LocalServer: ObservableObject {
             respond(.json(["ok": false, "error": "invalid_payload"]), on: connection)
             return
         }
-        let icon = library.add(name: name, sourceSVG: svg)
+        let mode = (dict["mode"] as? String) ?? "auto"
+        let figmaNodeID = dict["figmaNodeId"] as? String
+        let targetIconID = (dict["targetIconId"] as? String).flatMap(UUID.init(uuidString:))
+
+        let result = upsert(
+            in: library,
+            name: name,
+            svg: svg,
+            figmaNodeID: figmaNodeID,
+            mode: mode,
+            targetIconID: targetIconID
+        )
+
         respond(.json([
             "ok": true,
-            "id": icon.id.uuidString,
-            "name": icon.name,
-            "codepoint": Int(icon.codepoint),
+            "id": result.icon.id.uuidString,
+            "name": result.icon.name,
+            "codepoint": Int(result.icon.codepoint),
+            "action": result.action,
         ]), on: connection)
+    }
+
+    private struct IngestResult {
+        var icon: Icon
+        var action: String // "created" | "updated"
+    }
+
+    private func upsert(
+        in library: IconLibrary,
+        name: String,
+        svg: String,
+        figmaNodeID: String?,
+        mode: String,
+        targetIconID: UUID?
+    ) -> IngestResult {
+        // Explicit replacement: caller picked an existing icon.
+        if mode == "update", let id = targetIconID, let target = library.find(byID: id) {
+            let updated = library.replace(target, with: svg, renamingTo: name, figmaNodeID: figmaNodeID)
+            return IngestResult(icon: updated, action: "updated")
+        }
+
+        // Auto-link: same Figma node → update in place.
+        if mode == "auto",
+           let nodeID = figmaNodeID,
+           let linked = library.find(byFigmaNodeID: nodeID) {
+            let updated = library.replace(linked, with: svg, renamingTo: name, figmaNodeID: nodeID)
+            return IngestResult(icon: updated, action: "updated")
+        }
+
+        // Default: brand-new icon.
+        let created = library.add(name: name, sourceSVG: svg, figmaNodeID: figmaNodeID)
+        return IngestResult(icon: created, action: "created")
     }
 
     private func respond(_ response: HTTPResponse, on connection: NWConnection) {

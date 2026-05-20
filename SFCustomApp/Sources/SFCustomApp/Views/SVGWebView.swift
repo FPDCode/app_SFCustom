@@ -8,6 +8,10 @@ struct SVGWebView: NSViewRepresentable {
     var svg: String
     var background: Color = .clear
     var padding: Double = 12
+    /// When non-nil, every `fill` and `stroke` in the SVG is forced to
+    /// this colour (except explicit `none`/`transparent` ones). Used by
+    /// the Compare view to keep monochrome icons readable in dark mode.
+    var tint: Color? = nil
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -20,6 +24,16 @@ struct SVGWebView: NSViewRepresentable {
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         let bgHex = nsColorHex(background)
+        let tintCSS: String
+        if let tint, let tintHex = nsColorHexOrNil(tint) {
+            tintCSS = """
+              svg [fill]:not([fill="none"]):not([fill="transparent"]) { fill: \(tintHex) !important; }
+              svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) { stroke: \(tintHex) !important; }
+              svg, svg * { color: \(tintHex); }
+            """
+        } else {
+            tintCSS = ""
+        }
         let html = """
         <!doctype html>
         <html><head><meta charset="utf-8">
@@ -28,6 +42,7 @@ struct SVGWebView: NSViewRepresentable {
           .stage { box-sizing:border-box; padding:\(padding)px; height:100%;
                    display:flex; align-items:center; justify-content:center; }
           .stage svg { width:100%; height:100%; max-width:100%; max-height:100%; display:block; }
+          \(tintCSS)
         </style>
         </head><body><div class="stage">\(svg)</div></body></html>
         """
@@ -36,6 +51,11 @@ struct SVGWebView: NSViewRepresentable {
 
     private func nsColorHex(_ color: Color) -> String {
         if color == .clear { return "transparent" }
+        return nsColorHexOrNil(color) ?? "transparent"
+    }
+
+    private func nsColorHexOrNil(_ color: Color) -> String? {
+        if color == .clear { return nil }
         let nsColor = NSColor(color).usingColorSpace(.sRGB) ?? .clear
         let r = Int(round(nsColor.redComponent * 255))
         let g = Int(round(nsColor.greenComponent * 255))

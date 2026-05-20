@@ -37,7 +37,13 @@
       "Bash(/usr/bin/python3 -c \"import fontTools; print\\('fontTools version:', fontTools.__version__\\)\")",
       "Bash(/opt/homebrew/bin/python3 --version)",
       "Bash(/opt/homebrew/bin/python3 -c \"import fontTools; print\\('fontTools version:', fontTools.__version__\\)\")",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(chmod +x \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build_app.sh\")",
+      "Bash(./build_app.sh release *)",
+      "Bash(open \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SF Custom.app\")",
+      "Bash(kill 1994)",
+      "Bash(open -R \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SF Custom.app\")",
+      "Bash(pkill -f \"SF Custom.app\")"
     ]
   }
 }
