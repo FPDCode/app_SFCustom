@@ -50,7 +50,14 @@
       "Bash(git rm *)",
       "Bash(codesign -dvvv \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SF Custom.app\")",
       "Bash(defaults read *)",
-      "Bash(killall Dock)"
+      "Bash(killall Dock)",
+      "Bash(ls -t ~/Downloads/*.png ~/Downloads/*.jpg ~/Desktop/*.png ~/Desktop/*.jpg 2>/dev/null | head -10)",
+      "Bash(find ~/Downloads ~/Desktop /Users/eyemac/Documents -maxdepth 3 -name \"*.png\" -newer \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build_app.sh\" 2>/dev/null | head -10)",
+      "Bash(find /tmp /var/folders -name \"*.png\" -newer \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build_app.sh\" 2>/dev/null | grep -v claude-501 | head -10)",
+      "Bash(find /var/folders -name \"*.png\" -mmin -10 2>/dev/null | head -10; find /tmp -maxdepth 5 -name \"*.png\" -mmin -10 2>/dev/null | head -10)",
+      "Read(//Users/eyemac/Documents/SFCustomIcon/**)",
+      "Bash(cp \"/Users/eyemac/Documents/SFCustomIcon/SFCustom-iOS-Default-1024x1024@1x.png\" \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/SFCustomIcon.png\" && ls -la \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/SFCustomIcon.png\")",
+      "Bash(qlmanage -t -s 512 -o /tmp \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SFCustomApp.app/Contents/Resources/AppIcon.icns\")"
     ]
   }
 }

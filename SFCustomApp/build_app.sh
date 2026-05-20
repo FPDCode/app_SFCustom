@@ -34,11 +34,32 @@ if [[ -d "${BUILD_DIR}/${BUNDLE_NAME}" ]]; then
   cp -R "${BUILD_DIR}/${BUNDLE_NAME}" "${APP_DIR}/Contents/Resources/${BUNDLE_NAME}"
 fi
 
-# Render AppIcon.icns from the Icon Composer source if present.
+# Build AppIcon.icns from either a pre-rendered 1024×1024 PNG (preferred —
+# preserves Icon Composer's glass / specular / shadow effects) or, as a
+# fallback, by compositing the layered SVGs in SFCustom.icon.
+RENDERED_ICON="SFCustomIcon.png"
 ICON_SOURCE="SFCustom.icon"
-if [[ -d "${ICON_SOURCE}" ]]; then
-  echo "→ rendering ${ICON_SOURCE} → AppIcon.icns"
-  ICON_OUT=".build/icon"
+ICON_OUT=".build/icon"
+ICONSET="${ICON_OUT}/AppIcon.iconset"
+
+if [[ -f "${RENDERED_ICON}" ]]; then
+  echo "→ packaging ${RENDERED_ICON} → AppIcon.icns"
+  rm -rf "${ICON_OUT}"
+  mkdir -p "${ICONSET}"
+
+  for spec in 16:icon_16x16.png 32:icon_16x16@2x.png 32:icon_32x32.png \
+              64:icon_32x32@2x.png 128:icon_128x128.png 256:icon_128x128@2x.png \
+              256:icon_256x256.png 512:icon_256x256@2x.png \
+              512:icon_512x512.png 1024:icon_512x512@2x.png; do
+    SIZE="${spec%%:*}"
+    NAME="${spec#*:}"
+    sips -z "${SIZE}" "${SIZE}" "${RENDERED_ICON}" --out "${ICONSET}/${NAME}" > /dev/null
+  done
+  iconutil -c icns "${ICONSET}" -o "${ICON_OUT}/AppIcon.icns"
+  cp "${ICON_OUT}/AppIcon.icns" "${APP_DIR}/Contents/Resources/AppIcon.icns"
+
+elif [[ -d "${ICON_SOURCE}" ]]; then
+  echo "→ rendering ${ICON_SOURCE} → AppIcon.icns (fallback, no glass effects)"
   rm -rf "${ICON_OUT}"
   mkdir -p "${ICON_OUT}"
   swift tools/render_icon.swift "${ICON_SOURCE}" "${ICON_OUT}" > /dev/null
