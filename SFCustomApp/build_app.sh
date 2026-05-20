@@ -7,7 +7,8 @@
 set -euo pipefail
 
 CONFIG="${1:-release}"
-APP_NAME="SF Custom"
+APP_BUNDLE="SFCustomApp"          # filename on disk (no spaces — keeps Dock bookmarks stable)
+APP_DISPLAY_NAME="SF Custom"      # what Finder / Dock label show users
 EXEC_NAME="SFCustomApp"
 BUNDLE_ID="com.impalastudios.SFCustom"
 VERSION="1.0.0"
@@ -19,7 +20,7 @@ echo "→ swift build -c ${CONFIG}"
 swift build -c "${CONFIG}"
 
 BUILD_DIR=".build/${CONFIG}"
-APP_DIR="build/${APP_NAME}.app"
+APP_DIR="build/${APP_BUNDLE}.app"
 
 rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS"
@@ -58,8 +59,8 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key>                    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>                  <string>${BUNDLE_ID}</string>
     <key>CFBundleInfoDictionaryVersion</key>       <string>6.0</string>
-    <key>CFBundleName</key>                        <string>${APP_NAME}</string>
-    <key>CFBundleDisplayName</key>                 <string>${APP_NAME}</string>
+    <key>CFBundleName</key>                        <string>${APP_DISPLAY_NAME}</string>
+    <key>CFBundleDisplayName</key>                 <string>${APP_DISPLAY_NAME}</string>
     <key>CFBundlePackageType</key>                 <string>APPL</string>
     <key>CFBundleShortVersionString</key>          <string>${VERSION}</string>
     <key>CFBundleVersion</key>                     <string>${BUILD_NUMBER}</string>

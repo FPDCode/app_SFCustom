@@ -47,7 +47,10 @@
       "Bash(chmod +x \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/render_icon.swift\")",
       "Bash(swift \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/render_icon.swift\" \"/Users/eyemac/Documents/SFCustom.icon\" \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/out\")",
       "Bash(qlmanage -t -s 512 -o /tmp \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/out/AppIcon.icns\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(codesign -dvvv \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SF Custom.app\")",
+      "Bash(defaults read *)",
+      "Bash(killall Dock)"
     ]
   }
 }
