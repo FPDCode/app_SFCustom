@@ -20,3 +20,4 @@ dist/
 # User-facing exports + compiled app bundle (build outputs)
 SFCustomExports/
 SFCustomApp/build/
+SFCustomApp/tools/out/

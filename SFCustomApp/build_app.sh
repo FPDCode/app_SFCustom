@@ -33,6 +33,21 @@ if [[ -d "${BUILD_DIR}/${BUNDLE_NAME}" ]]; then
   cp -R "${BUILD_DIR}/${BUNDLE_NAME}" "${APP_DIR}/Contents/Resources/${BUNDLE_NAME}"
 fi
 
+# Render AppIcon.icns from the Icon Composer source if present.
+ICON_SOURCE="SFCustom.icon"
+if [[ -d "${ICON_SOURCE}" ]]; then
+  echo "→ rendering ${ICON_SOURCE} → AppIcon.icns"
+  ICON_OUT=".build/icon"
+  rm -rf "${ICON_OUT}"
+  mkdir -p "${ICON_OUT}"
+  swift tools/render_icon.swift "${ICON_SOURCE}" "${ICON_OUT}" > /dev/null
+  if [[ -f "${ICON_OUT}/AppIcon.icns" ]]; then
+    cp "${ICON_OUT}/AppIcon.icns" "${APP_DIR}/Contents/Resources/AppIcon.icns"
+  else
+    echo "  warning: render_icon.swift did not produce AppIcon.icns"
+  fi
+fi
+
 cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -40,6 +55,7 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
 <dict>
     <key>CFBundleDevelopmentRegion</key>           <string>en</string>
     <key>CFBundleExecutable</key>                  <string>${EXEC_NAME}</string>
+    <key>CFBundleIconFile</key>                    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>                  <string>${BUNDLE_ID}</string>
     <key>CFBundleInfoDictionaryVersion</key>       <string>6.0</string>
     <key>CFBundleName</key>                        <string>${APP_NAME}</string>

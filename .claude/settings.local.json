@@ -43,7 +43,11 @@
       "Bash(open \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SF Custom.app\")",
       "Bash(kill 1994)",
       "Bash(open -R \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/build/SF Custom.app\")",
-      "Bash(pkill -f \"SF Custom.app\")"
+      "Bash(pkill -f \"SF Custom.app\")",
+      "Bash(chmod +x \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/render_icon.swift\")",
+      "Bash(swift \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/render_icon.swift\" \"/Users/eyemac/Documents/SFCustom.icon\" \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/out\")",
+      "Bash(qlmanage -t -s 512 -o /tmp \"/Users/eyemac/Documents/APPS/SF Custom/SFCustomApp/tools/out/AppIcon.icns\")",
+      "Bash(git rm *)"
     ]
   }
 }
