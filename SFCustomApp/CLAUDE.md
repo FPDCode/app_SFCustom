@@ -80,7 +80,7 @@ SFCustomApp/
 
 **Assistant control:** `Services/ControlAPI.swift` adds `/api/control/*` to the bridge (token in `~/Library/Application Support/SF Custom/control-token`, header `X-SFCustom-Token`). The MCP server in `../sf-custom-mcp/` exposes it to Claude Desktop / Claude Code.
 
-Tests: `swift test --filter SFCustomEngineTests` (32 tests, including Apple's sample templates and every talk pitfall).
+Tests: `swift test --filter SFCustomEngineTests` (35 tests, including Apple's sample templates, every talk pitfall and complex icons).
 
 ## Build & run
 

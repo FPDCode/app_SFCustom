@@ -185,7 +185,7 @@ public enum SVGShapeReader {
 
         static let inherited: Set<String> = [
             "fill", "stroke", "stroke-width", "stroke-linejoin", "stroke-linecap",
-            "stroke-miterlimit", "fill-rule", "visibility",
+            "stroke-miterlimit", "fill-rule", "visibility", "stroke-dasharray",
         ]
         static let nonRendered: Set<String> = [
             "defs", "clipPath", "mask", "symbol", "marker", "pattern",
@@ -218,6 +218,11 @@ public enum SVGShapeReader {
             }
             for (k, v) in own where Self.inherited.contains(k) { ctx.style[k] = v }
             if own["display"] == "none" || Self.nonRendered.contains(local) { ctx.hidden = true }
+            // Features that change what's visible but that we can't honour.
+            if ctx.inTarget {
+                if local == "mask" || attrs["mask"] != nil || own["mask"] != nil { unsupported.append("mask") }
+                if local == "clipPath" || attrs["clip-path"] != nil || own["clip-path"] != nil { unsupported.append("clip-path") }
+            }
 
             if let t = attrs["transform"] {
                 ctx.transform = ctx.transform.concatenating(AffineTransform2D.parse(t))
@@ -242,6 +247,9 @@ public enum SVGShapeReader {
                     let w = SVGNumberScanner.numbers(in: ctx.style["stroke-width"] ?? "1").first ?? 1
                     let scaled = w * ctx.transform.meanScale
                     if scaled > 0 {
+                        if let dash = ctx.style["stroke-dasharray"]?.lowercased(), dash != "none", !dash.isEmpty {
+                            unsupported.append("dashed strokes")
+                        }
                         stroke = StrokeStyle(
                             width: scaled,
                             join: LineJoin(rawValue: ctx.style["stroke-linejoin"] ?? "") ?? .miter,

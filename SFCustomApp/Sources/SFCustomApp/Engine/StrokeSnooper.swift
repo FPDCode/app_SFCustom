@@ -204,6 +204,10 @@ final class StrokeSnooper: NSObject {
                 if (cs.strokeLinecap)   dst.setAttribute('stroke-linecap',   cs.strokeLinecap);
                 if (cs.strokeMiterlimit)dst.setAttribute('stroke-miterlimit',cs.strokeMiterlimit);
                 if (cs.fillRule)        dst.setAttribute('fill-rule',        cs.fillRule);
+                // Keep what would otherwise be lost when the inline style is stripped.
+                if (cs.display === 'none') dst.setAttribute('display', 'none');
+                if (cs.visibility === 'hidden') dst.setAttribute('visibility', 'hidden');
+                if (cs.strokeDasharray && cs.strokeDasharray !== 'none') dst.setAttribute('stroke-dasharray', cs.strokeDasharray);
 
                 // Stroke-width: scale and persist as attribute (px units stripped).
                 if (STROKE_ELEMENTS.has(src.nodeName) || STROKE_ELEMENTS.has(src.tagName)) {

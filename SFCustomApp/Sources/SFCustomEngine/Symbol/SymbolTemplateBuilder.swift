@@ -99,7 +99,7 @@ public struct SymbolTemplate: Sendable {
 ///  4. Give every contour the right winding (plan taken from Regular,
 ///     applied to all three so structure stays identical).
 ///  5. Place each anchor in its slot with its margins.
-///  6. Verify with `CompatibilityChecker`; auto-fix if needed.
+///  6. Verify the structure with `CompatibilityChecker`.
 public enum SymbolTemplateBuilder {
 
     public static let capHeight = 70.459
@@ -119,7 +119,7 @@ public enum SymbolTemplateBuilder {
         let report = SVGShapeReader.read(sourceSVG)
         var warnings: [String] = []
         if !report.unsupportedElements.isEmpty {
-            warnings.append("Ignored unsupported elements: \(report.unsupportedElements.joined(separator: ", ")). Convert text and images to paths first.")
+            warnings.append("Not supported, so ignored: \(report.unsupportedElements.joined(separator: ", ")). Convert text, images, masks, clipping and dashes to plain paths first.")
         }
         return try build(shapes: report.shapes, options: options, warnings: warnings)
     }
@@ -181,14 +181,10 @@ public enum SymbolTemplateBuilder {
                 strokeWidth: hasStrokes ? maxStroke * strokeScale(for: w) * geometryScale : nil))
         }
 
-        // --- 6. Verify / auto-fix.
-        var check = CompatibilityChecker.check(anchors: anchors.map { ($0.weight, $0.path) })
-        if check.status == .fixable {
-            let fixed = CompatibilityFixer.fix(anchors: anchors.map { ($0.weight, $0.path) })
-            for i in anchors.indices { if let p = fixed[anchors[i].weight] { anchors[i].path = p } }
-            warnings.append("Auto-fixed: " + check.issues.map(\.message).joined(separator: "; "))
-            check = CompatibilityChecker.check(anchors: anchors.map { ($0.weight, $0.path) })
-        }
+        // --- 6. Verify. Structure only: order, direction and start points
+        // are right by construction, so no geometric guessing (and no
+        // "fixing") here.
+        let check = CompatibilityChecker.check(anchors: anchors.map { ($0.weight, $0.path) }, structuralOnly: true)
 
         return SymbolTemplate(name: options.name, mode: options.mode, anchors: anchors,
                               compatibility: check, warnings: warnings, hasStrokes: hasStrokes)

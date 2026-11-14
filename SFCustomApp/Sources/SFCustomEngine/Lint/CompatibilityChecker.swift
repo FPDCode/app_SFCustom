@@ -54,8 +54,14 @@ public struct CompatibilityReport: Hashable, Sendable {
 /// | same direction | (related) | reverse |
 public enum CompatibilityChecker {
 
+    /// - Parameter structuralOnly: only compare part and point counts.
+    ///   Used for anchors the engine built itself: their order, direction
+    ///   and start points are right by construction, and the geometric
+    ///   guesses below can misread heavy weights (overlapping loops look
+    ///   like a reversed or shifted path).
     public static func check(anchors: [(AnchorWeight, PathModel)],
-                             rawCommands: [AnchorWeight: [[Character]]]? = nil) -> CompatibilityReport {
+                             rawCommands: [AnchorWeight: [[Character]]]? = nil,
+                             structuralOnly: Bool = false) -> CompatibilityReport {
         let dict = Dictionary(anchors, uniquingKeysWith: { a, _ in a })
         var issues: [CompatibilityIssue] = []
         for w in AnchorWeight.allCases where dict[w] == nil || dict[w]!.isEmpty {
@@ -66,7 +72,7 @@ public enum CompatibilityChecker {
 
         for w in [AnchorWeight.ultralight, .black] {
             guard let other = dict[w], !other.isEmpty else { continue }
-            let a = Analysis(reference: reg, other: other)
+            let a = Analysis(reference: reg, other: other, heuristics: !structuralOnly)
             if a.partCountMismatch {
                 issues.append(.init(kind: .partCount, weight: w, part: nil,
                                     message: "\(w.displayName) has \(other.subpaths.count) parts, Regular has \(reg.subpaths.count).",
@@ -145,7 +151,7 @@ struct Analysis {
     var reordered = false
     var pairs: [Pair] = []
 
-    init(reference: PathModel, other: PathModel) {
+    init(reference: PathModel, other: PathModel, heuristics: Bool = true) {
         guard reference.subpaths.count == other.subpaths.count else {
             partCountMismatch = true
             return
@@ -176,7 +182,7 @@ struct Analysis {
         // Only call it "reordered" when identity is clearly worse.
         let identityCost = (0..<n).reduce(0) { $0 + cost($1, $1) }
         let matchedCost = (0..<n).reduce(0) { $0 + cost($1, mapping[$1]) }
-        if mapping != Array(0..<n), matchedCost < identityCost * 0.7, identityCost - matchedCost > 0.05 {
+        if heuristics, mapping != Array(0..<n), matchedCost < identityCost * 0.7, identityCost - matchedCost > 0.05 {
             reordered = true
         } else {
             mapping = Array(0..<n)
@@ -186,16 +192,23 @@ struct Analysis {
             let rs = reference.subpaths[i], os = other.subpaths[mapping[i]]
             var pair = Pair(ref: i, other: mapping[i], refCount: rs.segments.count,
                             otherCount: os.segments.count, reversed: false, rotation: 0)
-            if pair.refCount == pair.otherCount {
-                let ra = rs.signedArea, oa = os.signedArea
-                let significant = abs(ra) > 1e-6 * max(1, rb.width * rb.height) && abs(oa) > 1e-6 * max(1, ob.width * ob.height)
-                var candidate = os
-                if significant, (ra > 0) != (oa > 0) {
+            if heuristics, pair.refCount == pair.otherCount, rs.segments.count > 1 {
+                // Direction and start point are judged by how well the
+                // points line up (positions relative to the whole symbol),
+                // not by signed area: heavy weights have overlapping loops
+                // that can flip the area of a perfectly matching contour.
+                let an = Self.normalizedStarts(rs, in: rb)
+                let forward = Self.normalizedStarts(os, in: ob)
+                let backward = Self.normalizedStarts(os.reversed(), in: ob)
+                let closed = rs.isClosed && os.isClosed
+                let (fRot, fCost) = Self.bestRotation(an, forward, allowRotation: closed)
+                let (bRot, bCost) = Self.bestRotation(an, backward, allowRotation: closed)
+                let fBest = fRot.cost
+                if bCost.best < fBest * 0.6, fBest - bCost.best > 0.02 {
                     pair.reversed = true
-                    candidate = os.reversed()
-                }
-                if rs.isClosed && candidate.isClosed && rs.segments.count > 1 {
-                    pair.rotation = Self.bestRotation(rs, candidate)
+                    pair.rotation = bRot.index
+                } else if fRot.index != 0, fBest < fCost.identity * 0.6, fCost.identity - fBest > 0.02 {
+                    pair.rotation = fRot.index
                 }
             }
             pairs.append(pair)
@@ -216,11 +229,10 @@ struct Analysis {
                           logArea: log(max(area, 1e-9)), segments: sp.segments.count)
     }
 
-    /// Start-index shift of `b` that best lines its points up with `a`
-    /// (both normalised to their own bounds). 0 unless clearly better.
-    static func bestRotation(_ a: Subpath, _ b: Subpath) -> Int {
-        let n = a.segments.count
-        let an = normalizedStarts(a), bn = normalizedStarts(b)
+    /// Start-index shift of `b` that best lines its points up with `a`.
+    static func bestRotation(_ an: [Point], _ bn: [Point], allowRotation: Bool)
+        -> (rotation: (index: Int, cost: Double), costs: (identity: Double, best: Double)) {
+        let n = an.count
         func cost(_ r: Int) -> Double {
             var c = 0.0
             for k in 0..<n { c += an[k].distance(to: bn[(k + r) % n]) }
@@ -228,17 +240,17 @@ struct Analysis {
         }
         let c0 = cost(0)
         var best = 0, bestCost = c0
-        for r in 1..<n {
-            let c = cost(r)
-            if c < bestCost - 1e-12 { best = r; bestCost = c }
+        if allowRotation {
+            for r in 1..<n {
+                let c = cost(r)
+                if c < bestCost - 1e-12 { best = r; bestCost = c }
+            }
         }
-        // Require a real improvement, not just noise.
-        if best != 0, bestCost < c0 * 0.6, c0 - bestCost > 0.02 { return best }
-        return 0
+        return ((best, bestCost), (c0, bestCost))
     }
 
-    static func normalizedStarts(_ sp: Subpath) -> [Point] {
-        let b = sp.bounds
+    /// Segment start points, relative to the bounds of the whole anchor.
+    static func normalizedStarts(_ sp: Subpath, in b: Rect) -> [Point] {
         let w = max(b.width, 1e-9), h = max(b.height, 1e-9)
         return sp.segments.map { Point(($0.p0.x - b.minX) / w, ($0.p0.y - b.minY) / h) }
     }
