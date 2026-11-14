@@ -53,6 +53,24 @@ SFCustomApp/
         └── build_font.py              Python fontTools script (subprocessed)
 ```
 
+## SFCustomEngine (UI-free library target)
+
+`Sources/SFCustomEngine/` holds the geometry engine. It has no AppKit, SwiftUI or WebKit, so it builds and tests on Linux/CI too. Background: `../Documentation/Research/Custom-SF-Symbols-Talk-Takeaways.md`.
+
+| File | Role |
+|---|---|
+| `Geometry/PathModel.swift` | `Point`, `Segment` (always cubic), `Subpath`, `PathModel.signature()` |
+| `Geometry/SVGPathParser.swift` | `d` → PathModel (all commands, arcs → cubics) |
+| `Geometry/SVGPathWriter.swift` | PathModel → `d` (absolute `M/C/Z` only) |
+| `Geometry/SVGShapeReader.swift` | SVG doc → flattened shapes (transforms, styles, `insideElementWithID:`) |
+| `Outline/CompatibleStroker.swift` | ★ Stroke → fill whose **structure never depends on width**. `SymbolOutliner` merges fills + outlined strokes into one anchor |
+
+**The invariant:** `CompatibleStroker.outline(p, width: w).signature()` is identical for every `w`. That's what lets SF Symbols interpolate Ultralight ↔ Regular ↔ Black. Never add a branch whose *structural* outcome (number of segments or contours) depends on the width. Only coordinates may depend on it.
+
+Tests: `swift test --filter SFCustomEngineTests`. They include a check that Apple's own sample templates in `../SF Samples/` pass the signature test.
+
+**Not wired into the app yet.** `TemplateGenerator` still writes stroked anchors (Task 3 in the takeaways doc).
+
 ## Build & run
 
 ```bash
