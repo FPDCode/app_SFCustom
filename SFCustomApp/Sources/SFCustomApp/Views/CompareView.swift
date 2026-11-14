@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SFCustomEngine
 
 /// Side-by-side test bench for **exported templates** vs SF Pro symbols.
 ///
@@ -21,6 +22,7 @@ struct CompareView: View {
     @State private var sfSymbolName: String = "location.fill"
     @State private var pointSize: Double = 17
     @State private var previews: [TemplateGenerator.AnchorPreview] = []
+    @State private var template: SymbolTemplate?
     @State private var isPreviewing = false
     @State private var status: Status?
     @State private var lastError: String?
@@ -184,6 +186,9 @@ struct CompareView: View {
                 .frame(maxWidth: .infinity, minHeight: 240)
         } else {
             VStack(alignment: .leading, spacing: 24) {
+                if let template {
+                    CompatibilityPill(report: template.compatibility, warnings: template.warnings)
+                }
                 if variantsAreIdentical {
                     identicalVariantsWarning
                 }
@@ -193,6 +198,15 @@ struct CompareView: View {
                 }
                 Divider()
                 inlineRow
+                if let template {
+                    Divider()
+                    OnionSkinPanel(
+                        template: template,
+                        tint: iconTint,
+                        background: settings.darkBackground ? Color.black.opacity(0.5) : Color(nsColor: .controlBackgroundColor))
+                    Divider()
+                    HandoffCard(name: template.name)
+                }
             }
         }
     }
@@ -212,7 +226,7 @@ struct CompareView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("This icon has no strokes, so all three anchor weights are identical.")
                     .font(.callout.weight(.medium))
-                Text("SF Pro symbols vary weight by drawing thicker strokes (or wider fills). Either redraw with explicit strokes, or provide separate Ultralight / Regular / Black versions and import each one.")
+                Text("It will scale with text but keep one weight. Redraw it with strokes for real weights, or set the icon to “Scale only” to make that explicit.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -317,9 +331,8 @@ struct CompareView: View {
         let pt = CGFloat(pointSize)
         let renderedHeightPt = pt * (preview.viewBoxHeight / preview.capHeight) * Self.sfProCapToPtRatio
         let renderedWidthPt  = renderedHeightPt * (preview.viewBoxWidth / preview.viewBoxHeight)
-        // The icon sits with baseline at viewBox y=0 (which is ~91% down
-        // the SVG vertically because of the 10% overshoot we added).
-        let baselineOffset = renderedHeightPt * CGFloat(preview.capHeight / preview.viewBoxHeight)
+        // Baseline sits at viewBox y = 0, `baselineFromTop` units below the top.
+        let baselineOffset = renderedHeightPt * CGFloat(preview.baselineFromTop / preview.viewBoxHeight)
         return SVGWebView(svg: preview.svg, background: .clear, padding: 0, tint: iconTint)
             .frame(width: renderedWidthPt, height: renderedHeightPt)
             .alignmentGuide(.firstTextBaseline) { _ in baselineOffset }
@@ -364,7 +377,7 @@ struct CompareView: View {
             .controlSize(.regular)
 
             if let icon = selectedIcon {
-                Text("Will export to ~/SFCustomExports/\(icon.name)/")
+                Text("Will export template.svg + \(SymbolsetExporter.assetName(icon.name)).symbolset to ~/SFCustomExports/\(icon.name)/")
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
             }
@@ -445,11 +458,14 @@ struct CompareView: View {
         isPreviewing = true
         defer { isPreviewing = false }
         do {
-            previews = try await generator.generateAnchorPreviews(for: icon)
+            let built = try await generator.build(for: icon)
+            template = built
+            previews = TemplateGenerator.anchorPreviews(from: built)
             lastError = nil
         } catch {
             lastError = error.localizedDescription
             previews = []
+            template = nil
         }
     }
 
@@ -458,7 +474,7 @@ struct CompareView: View {
         guard let icon = selectedIcon else { return }
         do {
             let result = try await exporter.export(icon: icon)
-            status = .exported(result.templateURL)
+            status = .exported(result.iconFolder)
         } catch {
             status = .exportFailed(error.localizedDescription)
         }

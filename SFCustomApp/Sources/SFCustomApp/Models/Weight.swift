@@ -1,4 +1,5 @@
 import Foundation
+import SFCustomEngine
 
 /// The 9 SF Symbol weights, ordered Ultralight → Black.
 /// `strokeScale` is the multiplier applied to the source SVG's stroke widths
@@ -33,8 +34,25 @@ enum Weight: String, CaseIterable, Codable, Identifiable {
         }
     }
 
-    /// Multiplier on stroke-width relative to the source SVG.
-    /// Calibrated against Custom Symbols.app output for Regular = 1.0.
+    /// Position on the anchor axis used for previews: 0 = Ultralight,
+    /// 1 = Regular, 2 = Black. In-between weights are interpolated from
+    /// the three anchors exactly like SF Symbols does.
+    var anchorPosition: Double {
+        let idx = Weight.allCases.firstIndex(of: self) ?? 3
+        return SymbolInterpolator.weightPositions[idx].position
+    }
+
+    init(_ anchor: AnchorWeight) {
+        switch anchor {
+        case .ultralight: self = .ultralight
+        case .regular:    self = .regular
+        case .black:      self = .black
+        }
+    }
+
+    /// Legacy multiplier on stroke-width relative to the source SVG (the
+    /// old SF Custom ladder). Templates now use `StrokeLadder` from the
+    /// engine; this is only used by `StrokeSnooper.generateAllWeights`.
     var strokeScale: Double {
         switch self {
         case .ultralight: return 0.42

@@ -31,8 +31,20 @@ public struct SVGShape: Hashable, Sendable {
     /// Present when the element paints a stroke with a positive width.
     /// The width is already multiplied by the element's transform scale.
     public var stroke: StrokeStyle?
+    /// `true` for `fill-rule: evenodd` (holes by nesting parity).
+    public var isEvenOdd: Bool = false
     public var elementName: String
     public var id: String?
+
+    public init(path: PathModel, isFilled: Bool, stroke: StrokeStyle?, isEvenOdd: Bool = false,
+                elementName: String, id: String? = nil) {
+        self.path = path
+        self.isFilled = isFilled
+        self.stroke = stroke
+        self.isEvenOdd = isEvenOdd
+        self.elementName = elementName
+        self.id = id
+    }
 }
 
 /// Reads an SVG document into flattened `SVGShape`s.
@@ -55,25 +67,29 @@ public enum SVGShapeReader {
 
     /// - Parameter groupID: when set, only elements inside the element with
     ///   this `id` are returned (used to read `Regular-S` etc. from a template).
-    public static func read(_ svg: String, insideElementWithID groupID: String? = nil) -> Report {
-        let delegate = Delegate(targetID: groupID)
+    /// - Parameter keepDegenerate: preserve zero-length segments (use when
+    ///   reading SF Symbol templates, where every point counts).
+    public static func read(_ svg: String, insideElementWithID groupID: String? = nil,
+                            keepDegenerate: Bool = false) -> Report {
+        let delegate = Delegate(targetID: groupID, keepDegenerate: keepDegenerate)
         let parser = XMLParser(data: Data(svg.utf8))
         parser.delegate = delegate
         parser.shouldProcessNamespaces = false
-        parser.parse()
+        _ = parser.parse()
         return Report(shapes: delegate.shapes, unsupportedElements: Array(Set(delegate.unsupported)).sorted())
     }
 
     /// Convenience: all geometry inside `groupID` merged into one PathModel.
-    public static func path(_ svg: String, insideElementWithID groupID: String? = nil) -> PathModel {
+    public static func path(_ svg: String, insideElementWithID groupID: String? = nil,
+                            keepDegenerate: Bool = false) -> PathModel {
         var p = PathModel()
-        for s in read(svg, insideElementWithID: groupID).shapes { p.append(s.path) }
+        for s in read(svg, insideElementWithID: groupID, keepDegenerate: keepDegenerate).shapes { p.append(s.path) }
         return p
     }
 
     // MARK: - Element → PathModel
 
-    static func geometry(element name: String, attributes a: [String: String]) -> PathModel? {
+    static func geometry(element name: String, attributes a: [String: String], keepDegenerate: Bool = false) -> PathModel? {
         func n(_ key: String, _ def: Double = 0) -> Double {
             guard let v = a[key] else { return def }
             return SVGNumberScanner.numbers(in: v).first ?? def
@@ -81,7 +97,7 @@ public enum SVGShapeReader {
         switch name {
         case "path":
             guard let d = a["d"] else { return nil }
-            return try? SVGPathParser.parse(d)
+            return try? SVGPathParser.parse(d, keepDegenerate: keepDegenerate)
         case "rect":
             return rect(x: n("x"), y: n("y"), w: n("width"), h: n("height"),
                         rx: a["rx"].flatMap { SVGNumberScanner.numbers(in: $0).first },
@@ -162,6 +178,7 @@ public enum SVGShapeReader {
 
     private final class Delegate: NSObject, XMLParserDelegate {
         let targetID: String?
+        let keepDegenerate: Bool
         var stack: [Context]
         var shapes: [SVGShape] = []
         var unsupported: [String] = []
@@ -177,8 +194,9 @@ public enum SVGShapeReader {
         static let shapeNames: Set<String> = ["path", "rect", "circle", "ellipse", "line", "polyline", "polygon"]
         static let containers: Set<String> = ["svg", "g", "a", "switch"]
 
-        init(targetID: String?) {
+        init(targetID: String?, keepDegenerate: Bool) {
             self.targetID = targetID
+            self.keepDegenerate = keepDegenerate
             self.stack = [Context(inTarget: targetID == nil)]
         }
 
@@ -214,7 +232,7 @@ public enum SVGShapeReader {
 
             guard ctx.inTarget, !ctx.hidden else { return }
             if Self.shapeNames.contains(local) {
-                guard let geo = SVGShapeReader.geometry(element: local, attributes: attrs), !geo.isEmpty else { return }
+                guard let geo = SVGShapeReader.geometry(element: local, attributes: attrs, keepDegenerate: keepDegenerate), !geo.isEmpty else { return }
                 if ctx.style["visibility"] == "hidden" { return }
                 let path = geo.transformed(by: ctx.transform)
                 let fill = (ctx.style["fill"] ?? "black").lowercased()
@@ -235,6 +253,7 @@ public enum SVGShapeReader {
                 let isFilled = fill != "none" && fill != "transparent"
                 guard isFilled || stroke != nil else { return }
                 shapes.append(SVGShape(path: path, isFilled: isFilled, stroke: stroke,
+                                       isEvenOdd: (ctx.style["fill-rule"] ?? "").lowercased() == "evenodd",
                                        elementName: local, id: attrs["id"]))
             } else if !Self.containers.contains(local) {
                 unsupported.append(local)

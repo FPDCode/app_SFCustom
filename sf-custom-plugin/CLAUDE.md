@@ -34,7 +34,7 @@ In Figma desktop: **Plugins → Development → Import plugin from manifest…**
 1. **code.ts** lives in Figma's QuickJS sandbox. On every selection change it calls `node.exportAsync({ format: "SVG", svgOutlineText: true, svgSimplifyStroke: true })`, then sends the SVG string + a default name to the UI via `postMessage`.
 2. **ui.html / ui.ts** runs in an iframe with network access. It renders a live preview, polls `http://127.0.0.1:8787/api/status` every 4s for the bridge status badge, and POSTs to `/api/icons` when the user clicks **Send**.
 
-Stroke outlining is enabled on export so the macOS font compiler — which only handles fills — gets clean filled paths.
+`svgSimplifyStroke` keeps strokes as centred strokes (it does not outline them). The app outlines them itself, so stroke widths can vary per weight.
 
 ## Why a single selection
 

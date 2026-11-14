@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import SFCustomEngine
 
 /// Writes templates and source SVGs to `~/SFCustomExports/<iconName>/`,
 /// the user-visible "test exports" folder.
@@ -26,6 +27,8 @@ struct Exporter {
         var iconFolder: URL
         var templateURL: URL
         var sourceURL: URL
+        /// `<name>.symbolset` — drag into Assets.xcassets.
+        var symbolsetURL: URL
     }
 
     /// The user-visible exports root. Lives at `~/SFCustomExports/`.
@@ -35,8 +38,8 @@ struct Exporter {
             .appendingPathComponent("SFCustomExports", isDirectory: true)
     }
 
-    /// Render and export the 9×3 SF Symbol template + the source SVG to
-    /// `~/SFCustomExports/<icon.name>/`.
+    /// Export the SF Symbol template, the source SVG and an Xcode
+    /// `.symbolset` to `~/SFCustomExports/<icon.name>/`.
     func export(icon: Icon) async throws -> ExportResult {
         let templateXML = try await TemplateGenerator().generate(for: icon)
 
@@ -53,7 +56,14 @@ struct Exporter {
             throw ExportError.writeFailed(error.localizedDescription)
         }
 
-        return ExportResult(iconFolder: folder, templateURL: templateURL, sourceURL: sourceURL)
+        let symbolsetURL: URL
+        do {
+            symbolsetURL = try SymbolsetExporter.write(templateSVG: templateXML, name: icon.name, to: folder)
+        } catch {
+            throw ExportError.writeFailed(error.localizedDescription)
+        }
+
+        return ExportResult(iconFolder: folder, templateURL: templateURL, sourceURL: sourceURL, symbolsetURL: symbolsetURL)
     }
 
     /// Reveal the exports root (or a specific subfolder) in Finder.

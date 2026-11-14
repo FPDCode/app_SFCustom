@@ -1,4 +1,5 @@
 import Foundation
+import SFCustomEngine
 
 /// One icon in the user's library.
 ///
@@ -21,6 +22,14 @@ struct Icon: Identifiable, Codable, Hashable {
     /// plugin. Used to auto-update the icon when the same node is
     /// re-sent — no duplicates, no manual "replace" step.
     var figmaNodeID: String?
+
+    /// How weights are produced (nil = `.weights`). Optional so libraries
+    /// saved by older versions still decode.
+    var symbolMode: SymbolMode?
+
+    /// Per-anchor side bearings keyed by `AnchorWeight.rawValue`
+    /// (nil / missing = the default margin from Settings).
+    var margins: [String: AnchorMargins]?
 
     init(
         id: UUID = UUID(),

@@ -24,7 +24,7 @@ import Foundation
 ///    width-independent), so it is identical for every weight.
 ///  • Inner offsets that would invert (radius smaller than half the width)
 ///    get their handles clamped to zero length — points are *never* removed.
-///  • Caps: butt = 2, round = 2, square = 3 cubics.
+///  • Caps: butt = 2, round = 2, square = 3 cubics, plus 2 connector lines.
 ///  • Outline start = offset of the source start point, left side first;
 ///    subpath order follows source order.
 public enum CompatibleStroker {
@@ -55,11 +55,19 @@ public enum CompatibleStroker {
             let inner = offsetSide(Array(reversed), d: d, closed: true, style: style)
             return [close(outer), close(inner)]
         } else {
-            var contour = offsetSide(pieces, d: d, closed: false, style: style)
-            contour += cap(at: pieces.last!.p3, tangent: pieces.last!.endTangent ?? Point(1, 0), d: d, style: style.cap)
+            // Each cap is wrapped in two connector lines (side end → cap
+            // start, cap end → next side start). They're zero-length unless
+            // the inner side was curvature-limited, but they're *always*
+            // there, so the structure never changes with the width.
             let reversed = Array(pieces.reversed().map { $0.reversed() })
-            contour += offsetSide(reversed, d: d, closed: false, style: style)
-            contour += cap(at: reversed.last!.p3, tangent: reversed.last!.endTangent ?? Point(-1, 0), d: d, style: style.cap)
+            let sideA = offsetSide(pieces, d: d, closed: false, style: style)
+            let sideB = offsetSide(reversed, d: d, closed: false, style: style)
+            var contour = sideA
+            contour += capWithConnectors(at: pieces.last!.p3, tangent: pieces.last!.endTangent ?? Point(1, 0),
+                                         from: sideA.last!.p3, to: sideB.first!.p0, d: d, style: style.cap)
+            contour += sideB
+            contour += capWithConnectors(at: reversed.last!.p3, tangent: reversed.last!.endTangent ?? Point(-1, 0),
+                                         from: sideB.last!.p3, to: sideA.first!.p0, d: d, style: style.cap)
             return [close(contour)]
         }
     }
@@ -96,15 +104,17 @@ public enum CompatibleStroker {
     /// including corner joins between pieces. For closed runs the closing
     /// corner (last → first) is included, ending where the run started.
     static func offsetSide(_ pieces: [Segment], d: Double, closed: Bool, style: StrokeStyle) -> [Segment] {
+        let offsets = pieces.map { offset($0, d: d) }
         var out: [Segment] = []
         for (i, piece) in pieces.enumerated() {
-            out.append(offset(piece, d: d))
+            out.append(offsets[i])
             let hasNext = i + 1 < pieces.count || closed
             guard hasNext else { break }
-            let next = pieces[(i + 1) % pieces.count]
+            let j = (i + 1) % pieces.count
             out += join(at: piece.p3,
                         tIn: piece.endTangent ?? Point(1, 0),
-                        tOut: next.startTangent ?? Point(1, 0),
+                        tOut: pieces[j].startTangent ?? Point(1, 0),
+                        from: offsets[i].p3, to: offsets[j].p0,
                         d: d, style: style)
         }
         return out
@@ -152,11 +162,12 @@ public enum CompatibleStroker {
         abs(atan2(tIn.cross(tOut), tIn.dot(tOut))) >= smoothAngle
     }
 
-    static func join(at v: Point, tIn: Point, tOut: Point, d: Double, style: StrokeStyle) -> [Segment] {
+    /// `from` / `to` are the actual ends of the neighbouring offset pieces
+    /// (they differ from `v ± n·d` when the inner side was limited).
+    static func join(at v: Point, tIn: Point, tOut: Point, from a: Point, to b: Point,
+                     d: Double, style: StrokeStyle) -> [Segment] {
         guard isCorner(tIn: tIn, tOut: tOut) else { return [] }
         let nIn = tIn.perpendicular, nOut = tOut.perpendicular
-        let a = v + nIn * d
-        let b = v + nOut * d
         let theta = atan2(tIn.cross(tOut), tIn.dot(tOut)) // signed turn
         let isInner = theta > 0 // turning toward the left normal
 
@@ -200,6 +211,13 @@ public enum CompatibleStroker {
         }
     }
 
+    /// Connector + cap + connector (always 2 extra lines; see `outline`).
+    static func capWithConnectors(at p: Point, tangent t: Point, from: Point, to: Point,
+                                  d: Double, style: LineCap) -> [Segment] {
+        let c = cap(at: p, tangent: t, d: d, style: style)
+        return [.line(from, c.first!.p0)] + c + [.line(c.last!.p3, to)]
+    }
+
     // MARK: Helpers
 
     /// Circular arc around `center`, starting in direction `from` (unit),
@@ -239,30 +257,3 @@ public enum CompatibleStroker {
     }
 }
 
-/// Turns a whole icon (flattened shapes) into a single filled `PathModel`
-/// suitable for an SF Symbol anchor: fills pass through, strokes are
-/// outlined with `CompatibleStroker` at `width × strokeScale`.
-public enum SymbolOutliner {
-
-    public static func outline(_ shapes: [SVGShape], strokeScale: Double) -> PathModel {
-        var out = PathModel()
-        for shape in shapes {
-            if shape.isFilled {
-                // Ensure fills are closed so they're valid symbol geometry.
-                out.append(PathModel(subpaths: shape.path.subpaths.map {
-                    Subpath(segments: closedSegments($0), isClosed: true)
-                }))
-            }
-            if var stroke = shape.stroke {
-                stroke.width *= strokeScale
-                out.append(CompatibleStroker.outline(shape.path, style: stroke))
-            }
-        }
-        return out
-    }
-
-    static func closedSegments(_ sp: Subpath) -> [Segment] {
-        guard !sp.isClosed, let s = sp.start, let e = sp.end, s.distance(to: e) > 1e-9 else { return sp.segments }
-        return sp.segments + [.line(e, s)]
-    }
-}

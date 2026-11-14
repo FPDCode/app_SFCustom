@@ -1,4 +1,5 @@
 import Foundation
+import SFCustomEngine
 
 /// Compiles a set of icons into a single .otf font by shelling out to a
 /// bundled Python script that uses `fontTools`.
@@ -57,12 +58,17 @@ final class FontCompiler {
     }
 
     /// Run the bundled `build_font.py` against the given library.
+    ///
+    /// Glyphs come from the same engine as the templates, so stroked icons
+    /// are outlined properly. With `variable: true` the font gets a weight
+    /// axis built from the three compatible anchors.
     func compile(
         icons: [Icon],
         familyName: String = "SF Custom",
         styleName: String = "Regular",
+        variable: Bool = false,
         outputDirectory: URL? = nil
-    ) throws -> CompileResult {
+    ) async throws -> CompileResult {
         guard !icons.isEmpty else { throw CompileError.noIcons }
 
         let python = try findPython()
@@ -74,13 +80,21 @@ final class FontCompiler {
 
         let outDir = outputDirectory ?? Self.defaultOutputDirectory
         try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
-        let outURL = outDir.appendingPathComponent("\(familyName.replacingOccurrences(of: " ", with: ""))-\(styleName).otf")
+        let fileStyle = variable ? "Variable" : styleName
+        let outURL = outDir.appendingPathComponent("\(familyName.replacingOccurrences(of: " ", with: ""))-\(fileStyle).otf")
+
+        var payloads: [[String: Any]] = []
+        let generator = TemplateGenerator()
+        for icon in icons {
+            payloads.append(await buildIconPayload(icon, generator: generator))
+        }
 
         let spec: [String: Any] = [
             "family_name": familyName,
             "style_name":  styleName,
             "output":      outURL.path,
-            "icons":       icons.map(buildIconPayload),
+            "variable":    variable,
+            "icons":       payloads,
         ]
         let specURL = try writeSpec(spec)
 
@@ -132,7 +146,18 @@ final class FontCompiler {
 
     // MARK: - Private helpers
 
-    private func buildIconPayload(_ icon: Icon) -> [String: Any] {
+    /// Engine outlines (strokes → fills, plus the 3 masters). Falls back to
+    /// the raw source paths if the engine can't build the icon.
+    private func buildIconPayload(_ icon: Icon, generator: TemplateGenerator) async -> [String: Any] {
+        if let template = try? await generator.build(for: icon) {
+            var payload = FontSpec.icon(name: icon.name, codepoint: Int(icon.codepoint), template: template)
+            payload["name"] = icon.name // keep the library name as glyph name (as before)
+            return payload
+        }
+        return legacyPayload(icon)
+    }
+
+    private func legacyPayload(_ icon: Icon) -> [String: Any] {
         let extract = SVGSurface.extract(from: icon.sourceSVG)
         return [
             "name":      icon.name,

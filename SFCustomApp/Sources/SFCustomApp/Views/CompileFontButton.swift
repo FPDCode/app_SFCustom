@@ -66,10 +66,11 @@ struct CompileFontButton: View {
         defer { isCompiling = false }
 
         do {
-            let result = try compiler.compile(
+            let result = try await compiler.compile(
                 icons: library.icons,
                 familyName: settings.familyName,
-                styleName: settings.styleName
+                styleName: settings.styleName,
+                variable: SymbolSettings.variableFont
             )
             try installer.install(fontAt: result.fontURL)
             status = .success(result.fontURL)

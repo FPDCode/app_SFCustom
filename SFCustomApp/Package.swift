@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .executable(name: "SFCustomApp", targets: ["SFCustomApp"]),
         .library(name: "SFCustomEngine", targets: ["SFCustomEngine"]),
+        .executable(name: "sfcustom", targets: ["sfcustom"]),
     ],
     targets: [
         // UI-free geometry engine: SVG parsing, compatible stroke outlining,
@@ -22,6 +23,12 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
+        ),
+        // Command-line front end for CI: export / lint / font.
+        .executableTarget(
+            name: "sfcustom",
+            dependencies: ["SFCustomEngine"],
+            path: "Sources/sfcustom"
         ),
         .testTarget(
             name: "SFCustomEngineTests",

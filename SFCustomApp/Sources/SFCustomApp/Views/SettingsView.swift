@@ -1,4 +1,5 @@
 import SwiftUI
+import SFCustomEngine
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
@@ -10,11 +11,12 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             generalTab.tabItem { Label("General", systemImage: "gearshape") }
+            symbolsTab.tabItem { Label("Symbols", systemImage: "lineweight") }
             bridgeTab.tabItem { Label("Plugin Bridge", systemImage: "network") }
             fontTab.tabItem { Label("Font", systemImage: "textformat") }
         }
         .padding(20)
-        .frame(width: 460, height: 320)
+        .frame(width: 500, height: 400)
         .onAppear { diagnosis = compiler.diagnose() }
     }
 
@@ -26,6 +28,45 @@ struct SettingsView: View {
             Toggle("Dark preview background", isOn: $settings.darkBackground)
         }
         .padding(.top, 8)
+    }
+
+    private var symbolsTab: some View {
+        Form {
+            Picker("Stroke ladder", selection: $settings.ladderPreset) {
+                ForEach(StrokeLadder.Preset.allCases, id: \.self) { p in
+                    Text(p.displayName).tag(p.rawValue)
+                }
+            }
+            if settings.ladderPreset == StrokeLadder.Preset.custom.rawValue {
+                HStack {
+                    numberField("Ultralight", $settings.customUltralight)
+                    numberField("Regular", $settings.customRegular)
+                    numberField("Black", $settings.customBlack)
+                }
+            }
+            Text("Stroke widths in template units (cap height 70). The talk recipe 2 · 7 · 13 is closest to Apple’s own symbols.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Toggle("Normalise Regular stroke to the ladder", isOn: $settings.normalizeRegular)
+            Text("On: every icon gets the same Regular stroke, whatever stroke width you drew with. Off: your stroke is kept and the ladder is used as ratios.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack {
+                Text("Default margin")
+                TextField("", value: $settings.defaultMargin, format: .number.precision(.fractionLength(0...2)))
+                    .frame(width: 70)
+                Text("units (8–10 recommended)").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func numberField(_ label: String, _ value: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption)
+            TextField("", value: value, format: .number.precision(.fractionLength(0...2)))
+                .frame(width: 70)
+        }
     }
 
     private var bridgeTab: some View {
@@ -62,6 +103,10 @@ struct SettingsView: View {
                 Text("Style Name")
                 TextField("", text: $settings.styleName)
             }
+            Toggle("Variable font (one file, Ultralight → Black)", isOn: $settings.variableFont)
+            Text("Builds a single font with a weight axis from the three compatible anchors.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Divider()
             diagnosticsSection
         }

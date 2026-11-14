@@ -10,8 +10,8 @@ Inspired by Custom Symbols.app. Instead of trying to *interpolate paths* between
 
 1. Render the source SVG in a hidden `WKWebView`.
 2. Walk every element and ask `getComputedStyle()` for the *real* stroke-width (resolves CSS, inheritance, percentages, `currentColor`, etc.).
-3. For each of the 9 SF Symbol weights, clone the SVG and multiply each element's stroke-width by a per-weight scale factor (Ultralight ≈ 0.42×, Regular = 1.0×, Black ≈ 2.5×).
-4. Drop the resulting variants into Apple's SF Symbol template SVG at fixed slot coordinates.
+3. Hand the baked SVG to `SFCustomEngine`, which outlines strokes at the ladder widths (default 2 · 7 · 13 template units) with a stroker that keeps the point structure identical across Ultralight / Regular / Black.
+4. Write Apple's Template v7 with three filled, point-compatible anchors. Xcode interpolates the other weights.
 
 This means:
 - The visual weight progression looks correct out of the box for stroked icons.
@@ -55,21 +55,32 @@ SFCustomApp/
 
 ## SFCustomEngine (UI-free library target)
 
-`Sources/SFCustomEngine/` holds the geometry engine. It has no AppKit, SwiftUI or WebKit, so it builds and tests on Linux/CI too. Background: `../Documentation/Research/Custom-SF-Symbols-Talk-Takeaways.md`.
+`Sources/SFCustomEngine/` holds all symbol logic. It has no AppKit, SwiftUI or WebKit, so it builds and tests on Linux/CI. Background: `../Documentation/Research/Custom-SF-Symbols-Talk-Takeaways.md`.
 
 | File | Role |
 |---|---|
-| `Geometry/PathModel.swift` | `Point`, `Segment` (always cubic), `Subpath`, `PathModel.signature()` |
-| `Geometry/SVGPathParser.swift` | `d` → PathModel (all commands, arcs → cubics) |
+| `Geometry/PathModel.swift` | `Point`, `Segment` (always cubic), `Subpath`, `PathModel.signature()`, tight bounds |
+| `Geometry/SVGPathParser.swift` | `d` → PathModel (all commands, arcs → cubics; `keepDegenerate` for templates) |
 | `Geometry/SVGPathWriter.swift` | PathModel → `d` (absolute `M/C/Z` only) |
-| `Geometry/SVGShapeReader.swift` | SVG doc → flattened shapes (transforms, styles, `insideElementWithID:`) |
-| `Outline/CompatibleStroker.swift` | ★ Stroke → fill whose **structure never depends on width**. `SymbolOutliner` merges fills + outlined strokes into one anchor |
+| `Geometry/SVGShapeReader.swift` | SVG doc → flattened shapes (transforms, styles, fill-rule, `insideElementWithID:`) |
+| `Outline/CompatibleStroker.swift` | ★ Stroke → fill whose **structure never depends on width** |
+| `Symbol/SymbolOutliner.swift` | Fills + outlined strokes → one anchor; winding plan so overlaps union and holes stay holes |
+| `Symbol/StrokeLadder.swift` | Ladder presets (talk 2·7·13, legacy, custom), `AnchorWeight`, `AnchorMargins` |
+| `Symbol/SymbolTemplateBuilder.swift` | Source SVG → `SymbolTemplate` (sizing, Regular-stroke normalisation, margins, mode) + Template v7 writer |
+| `Symbol/SymbolInterpolator.swift` | Point-for-point blending (the 9 weights, the scrubber) |
+| `Symbol/SymbolPreviewRenderer.swift` | Preview SVGs: per anchor, interpolated, onion skin |
+| `Lint/CompatibilityChecker.swift` | Talk pitfalls → report (ok / fixable / broken), `CompatibilityFixer`, template-file lint/fix |
+| `Export/SymbolsetExporter.swift` | `.symbolset` / `.xcassets`, `HandoffSnippet`, `FontSpec` (font masters) |
 
-**The invariant:** `CompatibleStroker.outline(p, width: w).signature()` is identical for every `w`. That's what lets SF Symbols interpolate Ultralight ↔ Regular ↔ Black. Never add a branch whose *structural* outcome (number of segments or contours) depends on the width. Only coordinates may depend on it.
+**The invariant:** `CompatibleStroker.outline(p, width: w).signature()` is identical for every `w`. Never add a branch whose *structural* outcome (number of segments or contours) depends on the width. Only coordinates may. Zero-length segments are deliberate (connectors, unlimited caps). Keep them, and read templates with `keepDegenerate: true`.
 
-Tests: `swift test --filter SFCustomEngineTests`. They include a check that Apple's own sample templates in `../SF Samples/` pass the signature test.
+**App wiring:** `Engine/TemplateGenerator.swift` = WebKit CSS bake (`StrokeSnooper`, scale 1.0) → `SymbolTemplateBuilder`. Options come from `SymbolSettings` (UserDefaults, see `AppSettings.swift`) plus the per-icon `symbolMode` / `margins`.
 
-**Not wired into the app yet.** `TemplateGenerator` still writes stroked anchors (Task 3 in the takeaways doc).
+**CLI:** `swift run sfcustom export|lint|preview|font …` (see `Sources/sfcustom/main.swift`).
+
+**Assistant control:** `Services/ControlAPI.swift` adds `/api/control/*` to the bridge (token in `~/Library/Application Support/SF Custom/control-token`, header `X-SFCustom-Token`). The MCP server in `../sf-custom-mcp/` exposes it to Claude Desktop / Claude Code.
+
+Tests: `swift test --filter SFCustomEngineTests` (32 tests, including Apple's sample templates and every talk pitfall).
 
 ## Build & run
 
@@ -106,7 +117,7 @@ Glyphs use:
 - ascent: 800, descent: -200
 - One glyph per icon, mapped to a Private Use Area codepoint starting at U+E000
 
-**Limitation:** The font compiler only handles *filled* paths. The Figma plugin asks Figma to outline strokes on export (`svgOutlineText: true`, `svgSimplifyStroke: true`), so icons coming through the plugin work. SVGs imported by drag-and-drop should have their strokes outlined in advance.
+Glyph outlines come from the engine (strokes are outlined), so stroked icons work in the font. With Settings → Font → Variable, `build_font.py` builds one CFF2 variable font (wght 100–900, 9 named instances) from the three compatible anchors.
 
 ## Plugin bridge API
 
@@ -122,7 +133,7 @@ CORS is open (`*`) — the plugin's UI iframe origin isn't predictable.
 
 ## What I'd add next
 
-- **Adjustable weight scales** in Settings (per-icon overrides for designs that don't follow a uniform stroke-progression).
-- **Variable font output** so a single OTF covers all 9 weights.
+- Per-icon stroke-ladder overrides.
+- Drag handles for margins directly on the preview (currently a popover).
 - **Multi-icon export** with a sheet picker (pick which icons go in the .otf).
 - **Live re-installation** — currently the user must restart Figma to see a recompiled font.

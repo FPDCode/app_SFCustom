@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var isImporterPresented = false
     @State private var importError: String?
     @State private var isCompareOpen = false
+    @State private var isTemplateCheckOpen = false
 
     var body: some View {
         NavigationSplitView {
@@ -40,6 +41,9 @@ struct ContentView: View {
             CompareView(initialIcon: selectedIcon)
                 .environmentObject(library)
                 .environmentObject(settings)
+        }
+        .sheet(isPresented: $isTemplateCheckOpen) {
+            TemplateCheckView()
         }
         .onDrop(of: [.svg, .fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers)
@@ -147,6 +151,14 @@ struct ContentView: View {
             }
             .disabled(library.icons.isEmpty)
             .help("Test your icons side-by-side with SF Pro symbols")
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                isTemplateCheckOpen = true
+            } label: {
+                Label("Check Template", systemImage: "checkmark.seal")
+            }
+            .help("Check any SF Symbol template file for interpolation problems")
         }
         ToolbarItem(placement: .primaryAction) {
             CompileFontButton()

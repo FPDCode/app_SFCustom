@@ -7,6 +7,8 @@ import Network
 ///   GET  /api/status       → { "ok": true, "iconCount": N }
 ///   POST /api/icons        ← { "name": "...", "svg": "<svg>..." }
 ///                          → { "ok": true, "id": "...", "name": "..." }
+///   *    /api/control/…    assistant control API (see ControlAPI.swift),
+///                          requires the X-SFCustom-Token header
 ///
 /// Listens on 127.0.0.1 only. CORS is open (`*`) since the plugin's UI
 /// iframe origin isn't predictable.
@@ -26,6 +28,7 @@ final class LocalServer: ObservableObject {
 
     func start(on requestedPort: UInt16 = 8787) {
         stop()
+        _ = ControlToken.current() // make sure the assistant token exists
         do {
             let params = NWParameters.tcp
             let listener = try NWListener(using: params, on: .init(rawValue: requestedPort)!)
@@ -121,6 +124,21 @@ final class LocalServer: ObservableObject {
 
         case ("POST", "/api/icons"):
             handleIngest(request, on: connection)
+
+        case (_, let path) where path.hasPrefix("/api/control/"):
+            guard ControlToken.matches(request.headers["x-sfcustom-token"]) else {
+                respond(.json(["ok": false, "error": "unauthorized: missing or wrong X-SFCustom-Token"]), on: connection)
+                return
+            }
+            guard let library else {
+                respond(.json(["ok": false, "error": "library_unavailable"]), on: connection)
+                return
+            }
+            Task { @MainActor in
+                let result = await ControlAPI.handle(method: request.method, path: path,
+                                                     body: request.body, library: library)
+                self.respond(.json(result), on: connection)
+            }
 
         default:
             respond(.notFound, on: connection)

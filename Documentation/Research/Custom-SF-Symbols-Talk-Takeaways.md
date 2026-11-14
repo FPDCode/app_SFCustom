@@ -6,6 +6,8 @@ Tools mentioned: [SwiftDraw](https://github.com/swhitty/SwiftDraw) · [Custom Sy
 
 ---
 
+> **Status (branch `feature/symbol-compatibility`): everything in §3 is implemented.** P0-1 `CompatibleStroker`, P0-2 checker + fixer + pill, P1-1 onion skin + scrubber, P1-2 ladder presets + Regular normalisation, P1-3 per-anchor margins (popover), P1-4 `.symbolset` + handoff card, P2-1 `sfcustom` CLI, P2-2 Scale-only mode, P2-3 variable font. Added after this doc was written: assistant control via `sf-custom-mcp`. Engine code is tested on Linux (32 tests). The SwiftUI changes still need a first build on a Mac.
+
 ## 1. What the talk says (condensed)
 
 **The rules of a custom symbol**

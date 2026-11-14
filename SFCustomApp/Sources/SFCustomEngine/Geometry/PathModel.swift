@@ -273,3 +273,54 @@ public struct Rect: Hashable, Sendable {
         return r
     }
 }
+
+// MARK: - Tight bounds
+
+extension Segment {
+    /// Exact bounding box of the curve (not the control polygon), from the
+    /// roots of the derivative.
+    public var tightBounds: Rect {
+        var pts = [p0, p3]
+        for t in Self.extremaT(p0.x, p1.x, p2.x, p3.x) + Self.extremaT(p0.y, p1.y, p2.y, p3.y) {
+            pts.append(point(at: t))
+        }
+        return Rect.enclosing(pts)
+    }
+
+    /// Parameter values in (0,1) where the 1-D cubic's derivative is zero.
+    static func extremaT(_ a: Double, _ b: Double, _ c: Double, _ d: Double) -> [Double] {
+        // B'(t)/3 = (b-a)(1-t)² + 2(c-b)(1-t)t + (d-c)t² = A t² + B t + C
+        let qa = (b - a) - 2 * (c - b) + (d - c)
+        let qb = 2 * ((c - b) - (b - a))
+        let qc = b - a
+        var roots: [Double] = []
+        if abs(qa) < 1e-12 {
+            if abs(qb) > 1e-12 { roots.append(-qc / qb) }
+        } else {
+            let disc = qb * qb - 4 * qa * qc
+            if disc >= 0 {
+                let r = disc.squareRoot()
+                roots.append((-qb + r) / (2 * qa))
+                roots.append((-qb - r) / (2 * qa))
+            }
+        }
+        return roots.filter { $0 > 0 && $0 < 1 }
+    }
+}
+
+extension Rect {
+    public func union(_ o: Rect) -> Rect {
+        Rect(minX: min(minX, o.minX), minY: min(minY, o.minY), maxX: max(maxX, o.maxX), maxY: max(maxY, o.maxY))
+    }
+
+    public var isNull: Bool { minX > maxX || minY > maxY }
+}
+
+extension PathModel {
+    /// Exact bounds of the drawn geometry.
+    public var tightBounds: Rect {
+        var r = Rect.null
+        for sp in subpaths { for s in sp.segments { r = r.union(s.tightBounds) } }
+        return r
+    }
+}

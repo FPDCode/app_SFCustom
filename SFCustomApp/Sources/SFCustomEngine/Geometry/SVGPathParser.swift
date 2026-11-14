@@ -17,9 +17,12 @@ public enum SVGPathParser {
         case missingArguments(command: Character)
     }
 
-    public static func parse(_ d: String) throws -> PathModel {
+    /// - Parameter keepDegenerate: keep zero-length segments. Off for source
+    ///   art (they're noise); **on when reading templates**, because SF
+    ///   Symbols counts every point, including zero-length ones.
+    public static func parse(_ d: String, keepDegenerate: Bool = false) throws -> PathModel {
         var tok = SVGTokenizer(Array(d.utf8))
-        var builder = PathBuilder()
+        var builder = PathBuilder(keepDegenerate: keepDegenerate)
         var command: UInt8 = 0
 
         while let next = tok.peek() {
@@ -98,8 +101,11 @@ public struct PathBuilder {
     private var lastCubicControl: Point?
     private var lastQuadControl: Point?
     private var hasOpenSubpath = false
+    private let keepDegenerate: Bool
 
-    public init() {}
+    public init(keepDegenerate: Bool = false) {
+        self.keepDegenerate = keepDegenerate
+    }
 
     public mutating func move(to p: Point) {
         flush(closed: false)
@@ -152,6 +158,7 @@ public struct PathBuilder {
     }
 
     public mutating func close() {
+        // Z draws an implicit line only when the pen isn't already home.
         if current.distance(to: subpathStart) > 1e-9 {
             append(.line(current, subpathStart))
         }
@@ -170,7 +177,7 @@ public struct PathBuilder {
 
     private mutating func append(_ s: Segment) {
         if !hasOpenSubpath { subpathStart = current; hasOpenSubpath = true }
-        if s.isDegenerate { return }
+        if s.isDegenerate && !keepDegenerate { return }
         segments.append(s)
     }
 
